@@ -7,12 +7,24 @@ import {
   Platform,
   Dimensions,
 } from "react-native";
+// @ts-ignore
+
 import MasonryList from "react-native-masonry-list";
-import image1 from "../../assets/post-pictures/1.jpg";
-import image2 from "../../assets/post-pictures/2.jpg";
-import image3 from "../../assets/post-pictures/3.png";
-import image4 from "../../assets/post-pictures/4.jpg";
-import image5 from "../../assets/post-pictures/5.jpg";
+// @ts-ignore
+
+import image1 from "../../assets/1.jpg";
+// @ts-ignore
+
+import image2 from "../../assets/2.jpg";
+// @ts-ignore
+
+import image3 from "../../assets/3.png";
+// @ts-ignore
+
+import image4 from "../../assets/4.jpg";
+// @ts-ignore
+
+import image5 from "../../assets/5.jpg";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { Snackbar, TouchableRipple } from "react-native-paper";
 
@@ -40,33 +52,38 @@ export default function ExplorePage() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <View style={styles.container}>
-        {/* Plus Icon with Ripple Effect */}
-        <TouchableRipple
-          onPress={onPlusIconClick}
-          rippleColor="rgba(0, 0, 0, .32)"
-          style={styles.ripple}
-          borderless={false}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 10,
+          }}
         >
+          <Text style={{ fontSize: 24 }}>Explore</Text>
           <AntDesign
+            onPress={onPlusIconClick}
             style={styles.addButton}
             name="pluscircle"
             size={48}
             color="#5FB49C"
           />
-        </TouchableRipple>
+        </View>
 
-        {/* Text */}
         <Text style={styles.descriptionText}>
           View the range of aesthetically relaxing images. Or even add your own!
         </Text>
 
-        {/* Masonry List */}
         <MasonryList
+          listContainerStyle={{ paddingBotton: 50 }}
+          showsVerticalScrollIndicator={false}
           images={images.map((image) => ({
             source: image.image,
-            dimensions: { width: 1080, height: image.height }, // Use random height
+            dimensions: { width: 1080, height: image.height },
           }))}
           columns={2} // Number of columns
+          // @ts-ignore
+
           keyExtractor={(item) => item.id.toString()}
           style={styles.masonryList}
           imageContainerStyle={{ borderRadius: 10 }} // Add border radius to images
@@ -97,7 +114,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
-    paddingVertical: Platform.OS == "ios" ? 30 : 15,
+    paddingVertical: 30,
   },
   ripple: {
     alignSelf: "flex-end", // Align plus icon to the right

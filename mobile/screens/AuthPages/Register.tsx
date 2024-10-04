@@ -9,12 +9,18 @@ import {
   Image,
   Alert,
   Pressable,
+  ScrollView,
+  TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import Entypo from "@expo/vector-icons/Entypo";
 
 // @ts-ignore
 const RegisterPage: React.FC = ({ navigation }) => {
+  const [firstName, setFirstName] = useState<string>("");
   const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -35,46 +41,24 @@ const RegisterPage: React.FC = ({ navigation }) => {
   };
 
   const handleSubmit = () => {
-    // if (!username || !email || !password || !confirmPassword) {
-    //   Alert.alert("Please fill in all fields.");
-    //   return;
-    // }
-    // if (password !== confirmPassword) {
-    //   Alert.alert("Passwords do not match.");
-    //   return;
-    // }
     navigation.navigate("Main");
   };
 
   return (
     <SafeAreaView style={{ backgroundColor: "#fff", flex: 1 }}>
-      <View style={styles.container}>
+      {/* <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}> */}
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={{ fontWeight: "bold", fontSize: 24, marginBottom: 15 }}>
           Create an Account
         </Text>
-        <Text
-          style={{
-            fontWeight: "500",
-          }}
-        >
+        <Text style={{ fontWeight: "500" }}>
           Already have an account?
-          <Pressable
-            onPress={() => {
-              navigation.navigate("Login");
-            }}
-          >
-            <Text
-              style={{
-                color: "#5FB49C",
-                fontWeight: "bold",
-                // borderWidth: 1,
-                position: "relative",
-                top: 4,
-                left: 2,
-              }}
-            >
-              Login
-            </Text>
+          <Pressable onPress={() => navigation.navigate("Login")}>
+            <Text style={styles.loginText}>Login</Text>
           </Pressable>
         </Text>
         <View style={styles.profileContainer}>
@@ -92,6 +76,13 @@ const RegisterPage: React.FC = ({ navigation }) => {
             <Entypo name="pencil" size={24} color="#515851" />
           </TouchableOpacity>
         </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Firstname"
+          placeholderTextColor="#515851"
+          value={firstName}
+          onChangeText={setFirstName}
+        />
         <TextInput
           style={styles.input}
           placeholder="Username"
@@ -115,29 +106,24 @@ const RegisterPage: React.FC = ({ navigation }) => {
           onChangeText={setPassword}
           secureTextEntry
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Retype Password"
-          placeholderTextColor="#515851"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-        />
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
+      {/* </TouchableWithoutFeedback>
+      </KeyboardAvoidingView> */}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: "#ffffff",
     alignItems: "center",
     padding: 30,
     paddingTop: 100,
+    paddingBottom: 300,
   },
   profileContainer: {
     position: "relative",
@@ -168,9 +154,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 5,
   },
-  pencilButtonText: {
-    fontSize: 20,
-    color: "#007bff",
+  loginText: {
+    color: "#5FB49C",
+    fontWeight: "bold",
+    position: "relative",
+    top: 4,
+    left: 2,
   },
   input: {
     height: 60,

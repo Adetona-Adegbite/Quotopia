@@ -79,7 +79,12 @@ export default function LandingPage({ navigation }) {
           ))}
         </View>
         <View style={style.buttons}>
-          <Pressable style={style.button1}>
+          <Pressable
+            onPress={() => {
+              navigation.navigate("Login");
+            }}
+            style={style.button1}
+          >
             <Text style={{ color: "white" }}>Login</Text>
           </Pressable>
           <Pressable

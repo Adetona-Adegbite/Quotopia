@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "motivational-app",
-    "slug": "motivational-app",
+    "name": "Quotopia",
+    "slug": "Quotopia",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
     "ios": {
@@ -16,12 +16,20 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#000"
+      },
+      "package": "com.tona_adegbite.Quotopia"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-font"],
+    "assets": ["./assets/"],
+    "extra": {
+      "eas": {
+        "projectId": "779edd77-ff7e-4a62-a71e-752f92433d5a"
+      }
     }
   }
 }

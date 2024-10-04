@@ -2,3 +2,5 @@
 */expo
 */package-lock.json
 ./mobile/assets/post-pictures
+/mobile/assets/post-pictures/*
+*/.env

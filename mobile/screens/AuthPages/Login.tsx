@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   Pressable,
+  ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -18,19 +19,6 @@ const LoginPage: React.FC = ({ navigation }) => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
-
-  const handleImagePick = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
-    }
-  };
 
   const handleSubmit = () => {
     // if (!email || !password) {
@@ -43,7 +31,7 @@ const LoginPage: React.FC = ({ navigation }) => {
 
   return (
     <SafeAreaView style={{ backgroundColor: "#fff", flex: 1 }}>
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={{ fontWeight: "bold", fontSize: 24, marginBottom: 15 }}>
           Login to Your Account
         </Text>
@@ -55,7 +43,7 @@ const LoginPage: React.FC = ({ navigation }) => {
           Don't have an account?
           <Pressable
             onPress={() => {
-              navigation.navigate("Login");
+              navigation.navigate("Register");
             }}
           >
             <Text
@@ -92,18 +80,19 @@ const LoginPage: React.FC = ({ navigation }) => {
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: "#ffffff",
     alignItems: "center",
     padding: 30,
     paddingTop: 100,
+    paddingBottom: 350,
   },
   profileContainer: {
     position: "relative",

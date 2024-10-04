@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   SafeAreaView,
   StyleSheet,
@@ -9,19 +9,36 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  Modal,
+  TouchableWithoutFeedback,
+  Pressable,
+  Dimensions,
+  FlatList,
 } from "react-native";
 import { Feather, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useRoute } from "@react-navigation/native";
-import image1 from "../../assets/post-pictures/1.jpg";
-import image2 from "../../assets/post-pictures/2.jpg";
-import image3 from "../../assets/post-pictures/3.png";
-import image4 from "../../assets/post-pictures/4.jpg";
-import image5 from "../../assets/post-pictures/5.jpg";
+// @ts-ignore
+
+import image1 from "../../assets/1.jpg";
+// @ts-ignore
+
+import image2 from "../../assets/2.jpg";
+// @ts-ignore
+
+import image3 from "../../assets/3.png";
+// @ts-ignore
+
+import image4 from "../../assets/4.jpg";
+// @ts-ignore
+
+import image5 from "../../assets/5.jpg";
+// @ts-ignore
+
+import { ActivityIndicator, Snackbar } from "react-native-paper";
+
+const { width, height } = Dimensions.get("screen");
 
 export default function HomePage() {
-  const route = useRoute();
-  const { name } = route;
-
   // Sample posts with some having no images
   const posts = [
     {
@@ -110,48 +127,180 @@ export default function HomePage() {
       liked: true,
     },
   ];
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [caption, setCaption] = useState("");
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
+  const images = [image1, image2, image3, image4, image5];
+
+  const toggleModal = () => {
+    setModalVisible(!isModalVisible);
+    setSelectedImage(null);
+    setCaption("");
+  };
+  // @ts-ignore
+
+  const selectImage = (index) => {
+    setSelectedImage((prev) => (prev === index ? null : index));
+  };
+  const postSimulation = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setCaption("");
+      toggleModal();
+      setSnackbarVisible(true);
+    }, 1500);
+  };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <View style={styles.page}>
         {/* Header with the app name and pen icon */}
         <View style={styles.header}>
           <Text style={styles.appName}>Quotopia</Text>
-          <TouchableOpacity style={styles.penIcon}>
-            <Feather name="edit-3" size={24} color="black" />
+          <TouchableOpacity style={styles.penIcon} onPress={toggleModal}>
+            <Feather
+              name="edit-3"
+              size={24}
+              color="black"
+              // onPress={toggleModal}
+            />
           </TouchableOpacity>
         </View>
 
-        <ScrollView>
-          {posts.map((post) => (
-            <View key={post.id} style={styles.postContainer}>
-              <View style={styles.userInfo}>
-                <Image
-                  source={{ uri: post.profilePic }}
-                  style={styles.profilePic}
-                />
-                <View style={styles.userDetails}>
-                  <Text style={styles.userName}>{post.username}</Text>
-                  <Text style={styles.timePosted}>{post.timePosted}</Text>
+        <FlatList
+          contentContainerStyle={{ paddingBottom: 70 }}
+          showsVerticalScrollIndicator={false}
+          data={posts}
+          renderItem={({ item }) => {
+            return (
+              <View key={item.id} style={styles.postContainer}>
+                <View style={styles.userInfo}>
+                  <Image
+                    source={{ uri: item.profilePic }}
+                    style={styles.profilePic}
+                  />
+                  <View style={styles.userDetails}>
+                    <Text style={styles.userName}>{item.username}</Text>
+                    <Text style={styles.timePosted}>{item.timePosted}</Text>
+                  </View>
+                </View>
+                <Text style={styles.caption}>{item.caption}</Text>
+                {item.postImage && (
+                  <Image source={item.postImage} style={styles.postImage} />
+                )}
+                <View style={styles.actions}>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <FontAwesome
+                      name={item.liked ? "heart" : "heart-o"}
+                      size={24}
+                      color={item.liked ? "#5FB49C" : "black"}
+                    />
+                    <Text style={styles.actionText}>{item.likes}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-              <Text style={styles.caption}>{post.caption}</Text>
-              {post.postImage && (
-                <Image source={post.postImage} style={styles.postImage} />
-              )}
-              <View style={styles.actions}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <FontAwesome
-                    name={post.liked ? "heart" : "heart-o"}
-                    size={24}
-                    color={post.liked ? "#5FB49C" : "black"}
-                  />
-                  <Text style={styles.actionText}>{post.likes}</Text>
-                </TouchableOpacity>
+            );
+          }}
+        />
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={toggleModal}
+        >
+          <View style={styles.modalContainer}>
+            <Pressable
+              style={{
+                width: "100%",
+                height: "100%",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                backgroundColor: "rgba(0,0,0,0.3)",
+              }}
+              onPress={toggleModal}
+            ></Pressable>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Create a Post</Text>
+              <Text style={{ fontSize: 15, color: "#808080", marginBottom: 7 }}>
+                You may also select a picture to improve the aesthetic!
+              </Text>
+
+              <View style={styles.quotationContainer}>
+                <Text
+                  style={[styles.quotationMark, { alignSelf: "flex-start" }]}
+                >
+                  "
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  multiline
+                  placeholder="Type your words here..."
+                  value={caption}
+                  onChangeText={setCaption}
+                />
+                <Text style={[styles.quotationMark, { alignSelf: "flex-end" }]}>
+                  "
+                </Text>
               </View>
+
+              <ScrollView contentContainerStyle={styles.imageGrid}>
+                {images.map((image, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.imageWrapper}
+                    onPress={() => selectImage(index)}
+                  >
+                    <Image source={image} style={styles.imageItem} />
+                    {selectedImage === index && (
+                      <Feather
+                        name="check-circle"
+                        size={24}
+                        color="white"
+                        style={styles.tickIcon}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Button to close modal */}
+              <TouchableOpacity
+                onPress={() => {
+                  postSimulation();
+                }}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>
+                  {loading ? (
+                    <ActivityIndicator animating={loading} color="#fff" />
+                  ) : (
+                    "Share"
+                  )}
+                </Text>
+              </TouchableOpacity>
             </View>
-          ))}
-        </ScrollView>
+          </View>
+        </Modal>
+        <Snackbar
+          visible={snackbarVisible}
+          theme={{ colors: { primary: "green" } }}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={1500}
+          style={{
+            position: "absolute",
+            bottom: height * 0.1,
+            zIndex: 10,
+            width: "110%",
+
+            backgroundColor: "#5FB49C",
+          }}
+        >
+          Your post has been shared with the world!❤️
+        </Snackbar>
       </View>
     </SafeAreaView>
   );
@@ -238,5 +387,75 @@ const styles = StyleSheet.create({
   actionText: {
     color: "black",
     marginLeft: 5,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: "80%",
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  quotationContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 15,
+  },
+  quotationMark: {
+    fontSize: 38,
+    color: "#5FB49C",
+  },
+  input: {
+    width: "100%",
+    // borderWidth: 1,
+    // borderColor: "#ccc",
+    padding: 18,
+    marginBottom: 20,
+    borderRadius: 10,
+    fontSize: 24,
+  },
+  imageGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    // gap: 5,
+  },
+  imageWrapper: {
+    width: "49%",
+    height: 150,
+    marginBottom: 10,
+    position: "relative",
+  },
+  imageItem: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 10,
+  },
+  tickIcon: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+  },
+  closeButton: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: "#5FB49C",
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  closeButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
 });
