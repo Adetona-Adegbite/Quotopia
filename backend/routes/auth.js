@@ -1,13 +1,18 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
 const { User } = require("../models");
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
+const upload = require("../middleware/multer");
 
 const router = express.Router();
 
-router.post("/register", async (req, res) => {
+router.post("/register", upload.single("image"), async (req, res) => {
   const { username, firstname, lastname, email, password } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
+
+  const profilePicture = req.file ? req.file.path : null;
 
   try {
     const user = await User.create({
@@ -16,6 +21,7 @@ router.post("/register", async (req, res) => {
       lastname,
       email,
       password: hashedPassword,
+      profile_pic: profilePicture,
     });
 
     const accessToken = generateAccessToken(user);
@@ -23,9 +29,9 @@ router.post("/register", async (req, res) => {
 
     user.refreshToken = refreshToken;
     await user.save();
-
-    res.status(201).json({ accessToken, refreshToken });
+    res.status(201).json({ accessToken, refreshToken, user: user.id });
   } catch (error) {
+    console.log(error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -41,7 +47,7 @@ router.post("/login", async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.json({ accessToken, refreshToken });
+    res.json({ accessToken, refreshToken, user: user.id });
   } else {
     res.sendStatus(403);
   }

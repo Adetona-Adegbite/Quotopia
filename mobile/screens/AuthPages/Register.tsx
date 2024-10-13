@@ -17,10 +17,12 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import Entypo from "@expo/vector-icons/Entypo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // @ts-ignore
 const RegisterPage: React.FC = ({ navigation }) => {
   const [firstName, setFirstName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>("");
   const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -40,8 +42,52 @@ const RegisterPage: React.FC = ({ navigation }) => {
     }
   };
 
-  const handleSubmit = () => {
-    navigation.navigate("Main");
+  const handleSubmit = async () => {
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("firstname", firstName);
+    formData.append("lastname", lastName);
+    formData.append("email", email);
+    formData.append("password", password);
+
+    if (profileImage) {
+      const uriParts = profileImage.split(".");
+      const fileType = uriParts[uriParts.length - 1];
+      //@ts-ignore
+      formData.append("image", {
+        uri: profileImage,
+        name: `profile.${fileType}`,
+        type: `image/${fileType}`,
+      });
+    }
+
+    try {
+      const response = await fetch("http://172.20.10.3:3030/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      console.log("Data:", data);
+
+      if (response.ok) {
+        console.log("Registration successful:", data);
+        // Navigate the main page or login page
+        await AsyncStorage.setItem("accessToken", data.accessToken);
+        await AsyncStorage.setItem("refreshToken", data.refreshToken);
+        await AsyncStorage.setItem("userId", JSON.stringify(data.user));
+        navigation.navigate("Main");
+      } else {
+        // Handle registration errors
+        Alert.alert("Registration failed", data.error);
+      }
+    } catch (error) {
+      Alert.alert("An error occurred", error.message);
+      console.log(error);
+    }
   };
 
   return (
@@ -82,6 +128,13 @@ const RegisterPage: React.FC = ({ navigation }) => {
           placeholderTextColor="#515851"
           value={firstName}
           onChangeText={setFirstName}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Lastname"
+          placeholderTextColor="#515851"
+          value={lastName}
+          onChangeText={setLastName}
         />
         <TextInput
           style={styles.input}

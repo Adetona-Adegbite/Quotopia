@@ -22,6 +22,10 @@ const User = sequelize.define(
       allowNull: false,
       unique: true,
     },
+    profile_pic: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
     email: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -33,6 +37,12 @@ const User = sequelize.define(
     },
     refreshToken: {
       type: DataTypes.STRING,
+    },
+    notificationToken: {
+      type: DataTypes.STRING,
+    },
+    notificationsEnabled: {
+      type: DataTypes.BOOLEAN,
     },
   },
   {

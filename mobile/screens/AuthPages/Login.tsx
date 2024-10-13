@@ -11,8 +11,7 @@ import {
   Pressable,
   ScrollView,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import Entypo from "@expo/vector-icons/Entypo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // @ts-ignore
 const LoginPage: React.FC = ({ navigation }) => {
@@ -20,13 +19,41 @@ const LoginPage: React.FC = ({ navigation }) => {
   const [password, setPassword] = useState<string>("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    // if (!email || !password) {
-    //   Alert.alert("Please fill in all fields.");
-    //   return;
-    // }
-    // Add your login logic here (API calls, etc.)
-    navigation.navigate("Main");
+  const handleSubmit = async () => {
+    if (!email || !password) {
+      Alert.alert("Please fill in all fields.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://172.20.10.3:3030/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        console.log(data);
+
+        // Login successful
+        await AsyncStorage.setItem("accessToken", data.accessToken);
+        await AsyncStorage.setItem("refreshToken", data.refreshToken);
+        await AsyncStorage.setItem("userId", JSON.stringify(data.user));
+        // Navigate to the main page
+        navigation.navigate("Main");
+      } else {
+        // Handle login errors
+        Alert.alert("Login failed", data.error);
+      }
+    } catch (error) {
+      Alert.alert("An error occurred", error.message);
+    }
   };
 
   return (

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   SafeAreaView,
   StyleSheet,
@@ -14,6 +14,8 @@ import {
   Pressable,
   Dimensions,
   FlatList,
+  Alert,
+  RefreshControl,
 } from "react-native";
 import { Feather, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useRoute } from "@react-navigation/native";
@@ -35,176 +37,257 @@ import image5 from "../../assets/5.jpg";
 // @ts-ignore
 
 import { ActivityIndicator, Snackbar } from "react-native-paper";
+import supabase from "../../tools/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axiosInstance from "../../tools/axiosinstance";
+import { url } from "../../tools/url";
 
 const { width, height } = Dimensions.get("screen");
-
 export default function HomePage() {
-  // Sample posts with some having no images
-  const posts = [
-    {
-      id: 1,
-      username: "JohnDoe",
-      timePosted: "2 hours ago",
-      caption: "Had a great time at the beach today!",
-      postImage: image1,
-      profilePic: "https://via.placeholder.com/50",
-      likes: 120,
-      comments: 30,
-      purchases: 5,
-      liked: true,
-    },
-    {
-      id: 2,
-      username: "JaneSmith",
-      timePosted: "3 hours ago",
-      caption: "Loving this new book I'm reading.",
-      postImage: null, // No image for this post
-      profilePic: "https://via.placeholder.com/50",
-      likes: 89,
-      comments: 10,
-      liked: false,
-
-      purchases: 2,
-    },
-    {
-      id: 3,
-      username: "MikeRoss",
-      timePosted: "5 hours ago",
-      caption: "Check out my new car!",
-      postImage: image2,
-      profilePic: "https://via.placeholder.com/50",
-      likes: 230,
-      comments: 45,
-      purchases: 12,
-      liked: true,
-    },
-    {
-      id: 4,
-      username: "RachelZane",
-      timePosted: "7 hours ago",
-      caption: "My new artwork is finally complete.",
-      postImage: null, // No image for this post
-      profilePic: "https://via.placeholder.com/50",
-      likes: 170,
-      comments: 20,
-      liked: false,
-      purchases: 8,
-    },
-    {
-      id: 5,
-      username: "HarveySpecter",
-      timePosted: "8 hours ago",
-      caption: "Winning is everything.",
-      postImage: image4,
-      profilePic: "https://via.placeholder.com/50",
-      likes: 320,
-      comments: 60,
-      purchases: 15,
-      liked: false,
-    },
-    {
-      id: 6,
-      username: "HarveySpecter",
-      timePosted: "8 hours ago",
-      caption: "Winning is everything.",
-      postImage: image3,
-      profilePic: "https://via.placeholder.com/50",
-      likes: 320,
-      comments: 60,
-      purchases: 15,
-      liked: true,
-    },
-    {
-      id: 7,
-      username: "HarveySpecter",
-      timePosted: "8 hours ago",
-      caption: "Winning is everything.",
-      postImage: image5,
-      profilePic: "https://via.placeholder.com/50",
-      likes: 320,
-      comments: 60,
-      purchases: 15,
-      liked: true,
-    },
-  ];
+  const [posts, setPosts] = useState<any[]>([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState("");
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(0);
+  const [images, setImages] = useState<string[]>([]);
 
-  const images = [image1, image2, image3, image4, image5];
+  const [selectedImageUrl, setSelectedImageUrl] = useState("");
 
+  const [noMorePosts, setNoMorePosts] = useState(false);
+
+  const fetchPosts = async (pageNumber: number) => {
+    try {
+      setLoadingPosts(true);
+      const { data } = await axiosInstance.get(`/posts?page=${pageNumber}`);
+
+      if (data.length > 0) {
+        setPosts((prevPosts) => [...prevPosts, ...data]);
+      } else {
+        setNoMorePosts(true);
+      }
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      Alert.alert("Error fetching posts", error.message);
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+  useEffect(() => {
+    const sendToken = async () => {
+      try {
+        const userId = await AsyncStorage.getItem("userId");
+
+        const token = await AsyncStorage.getItem("notification-token");
+
+        if (!token) {
+          console.error("No token found");
+          return;
+        }
+
+        const response = await axiosInstance.post("/notifications/save-token", {
+          token,
+          userId,
+        });
+
+        if (response.status === 200) {
+          console.log("Token saved successfully");
+        } else {
+          console.error("Failed to save token", response.data);
+        }
+      } catch (error) {
+        console.error("Error sending token:", error);
+      }
+    };
+
+    const fetchImages = async () => {
+      const { data, error } = await supabase.storage
+        .from("post_pictures")
+        .list("", {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: "name", order: "asc" },
+        });
+      if (error) {
+        console.log("Error fetching images:", error);
+      } else {
+        const imageUrls = data.map(
+          (file) =>
+            supabase.storage.from("post_pictures").getPublicUrl(file.name).data
+              .publicUrl
+        );
+        setImages(imageUrls);
+      }
+    };
+    fetchImages();
+    sendToken();
+  }, []);
+
+  useEffect(() => {
+    fetchPosts(page);
+  }, [page]);
+  const shuffleArray = (array) => {
+    return array.sort(() => Math.random() - 0.5);
+  };
   const toggleModal = () => {
     setModalVisible(!isModalVisible);
     setSelectedImage(null);
     setCaption("");
+    if (!isModalVisible) {
+      setImages(shuffleArray([...images])); // Clone and shuffle the images
+    }
   };
-  // @ts-ignore
-
-  const selectImage = (index) => {
+  const selectImage = (index, image) => {
+    setSelectedImageUrl(image);
     setSelectedImage((prev) => (prev === index ? null : index));
   };
-  const postSimulation = () => {
-    setLoading(true);
-    setTimeout(() => {
+
+  const postSimulation = async () => {
+    try {
+      setLoading(true);
+      const userId = await AsyncStorage.getItem("userId");
+      const postData = {
+        userId,
+        imageUrl: selectedImageUrl,
+        caption,
+      };
+      await axiosInstance.post("/posts", postData);
+
       setLoading(false);
       setCaption("");
       toggleModal();
       setSnackbarVisible(true);
-    }, 1500);
+      setSelectedImage(null);
+      setPosts([]);
+      setPage(0);
+      fetchPosts(0);
+    } catch (e: any) {
+      Alert.alert("An error occurred. Try again later", e.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const likeHandler = async (postId: string, liked: boolean) => {
+    try {
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                likedByUser: !liked,
+                likeCount: liked ? post.likeCount - 1 : post.likeCount + 1,
+              }
+            : post
+        )
+      );
+
+      const userId = await AsyncStorage.getItem("userId");
+      const endpoint = liked
+        ? `/likes/${postId}/unlike`
+        : `/likes/${postId}/like`;
+
+      await axiosInstance.post(endpoint, { userId });
+    } catch (error) {
+      console.log("Error updating like:", error);
+      Alert.alert("An error occurred while updating the like status.");
+    }
+  };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setPosts([]);
+    setPage(0);
+    setNoMorePosts(false);
+    await fetchPosts(0);
+    setRefreshing(false);
+  }, []);
+
+  const loadMorePosts = async () => {
+    if (!loadingPosts && !noMorePosts) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      await fetchPosts(nextPage);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <View style={styles.page}>
-        {/* Header with the app name and pen icon */}
         <View style={styles.header}>
           <Text style={styles.appName}>Quotopia</Text>
           <TouchableOpacity style={styles.penIcon} onPress={toggleModal}>
-            <Feather
-              name="edit-3"
-              size={24}
-              color="black"
-              // onPress={toggleModal}
-            />
+            <Feather name="edit-3" size={24} color="black" />
           </TouchableOpacity>
         </View>
 
-        <FlatList
-          contentContainerStyle={{ paddingBottom: 70 }}
-          showsVerticalScrollIndicator={false}
-          data={posts}
-          renderItem={({ item }) => {
-            return (
-              <View key={item.id} style={styles.postContainer}>
-                <View style={styles.userInfo}>
-                  <Image
-                    source={{ uri: item.profilePic }}
-                    style={styles.profilePic}
-                  />
-                  <View style={styles.userDetails}>
-                    <Text style={styles.userName}>{item.username}</Text>
-                    <Text style={styles.timePosted}>{item.timePosted}</Text>
+        {loadingPosts && page === 0 ? (
+          <ActivityIndicator size="large" color="#5FB49C" />
+        ) : (
+          <FlatList
+            contentContainerStyle={{ paddingBottom: 70 }}
+            showsVerticalScrollIndicator={false}
+            data={posts}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            onEndReached={loadMorePosts}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={() =>
+              loadingPosts ? (
+                <View style={{ paddingVertical: 20 }}>
+                  <ActivityIndicator size="small" color="red" />
+                </View>
+              ) : noMorePosts ? (
+                <Text style={{ textAlign: "center", color: "#888" }}>
+                  No more posts to load
+                </Text>
+              ) : null
+            }
+            renderItem={({ item }) => {
+              return (
+                <View key={item.id} style={styles.postContainer}>
+                  <View style={styles.userInfo}>
+                    <Image
+                      source={{
+                        uri: `http://${url}/${item.user.profile_pic}`,
+                      }}
+                      style={styles.profilePic}
+                    />
+                    <View style={styles.userDetails}>
+                      <Text style={styles.userName}>@{item.user.username}</Text>
+                      <Text style={styles.timePosted}>{item.timeAgo}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.caption}>{item.caption}</Text>
+                  {item.imageUrl && (
+                    <Image
+                      source={{ uri: item.imageUrl }}
+                      style={styles.postImage}
+                    />
+                  )}
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                      onPress={() => likeHandler(item.id, item.likedByUser)}
+                      style={styles.actionButton}
+                    >
+                      <FontAwesome
+                        name={item.likedByUser ? "heart" : "heart-o"}
+                        size={24}
+                        color={item.likedByUser ? "#5FB49C" : "black"}
+                      />
+                      <Text style={styles.actionText}>{item.likeCount}</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <Text style={styles.caption}>{item.caption}</Text>
-                {item.postImage && (
-                  <Image source={item.postImage} style={styles.postImage} />
-                )}
-                <View style={styles.actions}>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <FontAwesome
-                      name={item.liked ? "heart" : "heart-o"}
-                      size={24}
-                      color={item.liked ? "#5FB49C" : "black"}
-                    />
-                    <Text style={styles.actionText}>{item.likes}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          }}
-        />
+              );
+            }}
+          />
+        )}
+
         <Modal
           animationType="slide"
           transparent={true}
@@ -238,7 +321,7 @@ export default function HomePage() {
                 <TextInput
                   style={styles.input}
                   multiline
-                  placeholder="Type your words here..."
+                  placeholder="Type kind words here..."
                   value={caption}
                   onChangeText={setCaption}
                 />
@@ -252,9 +335,9 @@ export default function HomePage() {
                   <TouchableOpacity
                     key={index}
                     style={styles.imageWrapper}
-                    onPress={() => selectImage(index)}
+                    onPress={() => selectImage(index, image)}
                   >
-                    <Image source={image} style={styles.imageItem} />
+                    <Image source={{ uri: image }} style={styles.imageItem} />
                     {selectedImage === index && (
                       <Feather
                         name="check-circle"
@@ -267,11 +350,8 @@ export default function HomePage() {
                 ))}
               </ScrollView>
 
-              {/* Button to close modal */}
               <TouchableOpacity
-                onPress={() => {
-                  postSimulation();
-                }}
+                onPress={postSimulation}
                 style={styles.closeButton}
               >
                 <Text style={styles.closeButtonText}>
@@ -285,6 +365,7 @@ export default function HomePage() {
             </View>
           </View>
         </Modal>
+
         <Snackbar
           visible={snackbarVisible}
           theme={{ colors: { primary: "green" } }}
@@ -295,7 +376,6 @@ export default function HomePage() {
             bottom: height * 0.1,
             zIndex: 10,
             width: "110%",
-
             backgroundColor: "#5FB49C",
           }}
         >
@@ -305,7 +385,6 @@ export default function HomePage() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   page: {
     flex: 1,
@@ -398,7 +477,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: "80%",
+    height: "85%",
   },
   modalTitle: {
     fontSize: 24,

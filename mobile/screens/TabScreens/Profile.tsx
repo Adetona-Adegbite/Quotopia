@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import {
   SafeAreaView,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
   Switch,
+  ActivityIndicator,
 } from "react-native";
 import { FontAwesome, Feather } from "@expo/vector-icons";
 // @ts-ignore
@@ -21,89 +22,119 @@ import image2 from "../../assets/2.jpg";
 // @ts-ignore
 
 import profile from "../../assets/tona_tech.jpeg";
+import axiosInstance from "../../tools/axiosinstance";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { url } from "../../tools/url";
 // @ts-ignore
-
 export default function ProfilePage({ navigation }) {
-  // Sample user data
-  const userData = {
-    profilePic: profile,
-    username: "Tona Tech",
-    postCount: 15,
-    totalLikes: 250,
-    posts: [
-      {
-        id: 1,
-        profilePic: profile,
-        username: "JohnDoe",
-        timePosted: "2 hours ago",
-        caption: "Just posted my first reel!",
-        postImage: image1,
-        liked: true,
-        likes: 20,
-      },
-      {
-        id: 3,
-        profilePic: profile,
-        username: "JohnDoe",
-        timePosted: "1 day ago",
-        caption: "Learning React Native!",
-        postImage: null,
-        liked: true,
-        likes: 30,
-      },
-      {
-        id: 2,
-        profilePic: profile,
-        username: "JohnDoe",
-        timePosted: "5 hours ago",
-        caption: "Had a great day at the beach!",
-        postImage: image2,
-        liked: false,
-        likes: 15,
-      },
-    ],
-  };
-
-  // State for modal and snackbar
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [userData, setUserData] = useState({ userPosts: [], totalLikes: 0 });
+
+  useLayoutEffect(() => {
+    async function getUserData() {
+      setLoading(true);
+      try {
+        const userId = await AsyncStorage.getItem("userId");
+        const response = await axiosInstance.get(`/posts/user/${userId}`);
+        console.log(response.data);
+
+        setUserData(response.data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    getUserData();
+  }, []);
+
+  const toggleNotifications = async (value) => {
+    setNotificationsEnabled(value);
+
+    try {
+      const userId = await AsyncStorage.getItem("userId");
+      await axiosInstance.put(`/user/update-preferences`, {
+        notificationsEnabled: value,
+        userId: userId,
+      });
+    } catch (error) {
+      console.error("Error updating notification preferences:", error);
+    }
+  };
 
   const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
   };
-  // @ts-ignore
 
-  const renderPost = ({ item }) => (
-    <View key={item.id} style={styles.postContainer}>
-      <View style={styles.userInfo}>
-        <Image
-          source={item.profilePic}
-          style={{ width: 50, height: 50, borderRadius: 50, marginRight: 10 }}
-        />
-        {/* @ts-ignore */}
-        <View style={styles.userDetails}>
-          <Text style={styles.userName}>You</Text>
-          <Text style={styles.timePosted}>{item.timePosted}</Text>
+  const renderPost = ({ item }) => {
+    const handleLike = async (postId: any, likedByUser: any) => {
+      try {
+        const userId = await AsyncStorage.getItem("userId");
+        console.log(likedByUser);
+
+        if (likedByUser) {
+          await axiosInstance.post(`/likes/${postId}/unlike`, { userId });
+        } else {
+          await axiosInstance.post(`/likes/${postId}/like`, { userId });
+        }
+
+        // Update local state to reflect the new like status
+        setUserData((prevData: any) => {
+          const updatedPosts = prevData.userPosts.map((post: any) => {
+            if (post.id === postId) {
+              return {
+                ...post,
+                likedByUser: !likedByUser,
+                likeCount: likedByUser
+                  ? post.likeCount - 1
+                  : post.likeCount + 1,
+              };
+            }
+            return post;
+          });
+          return { ...prevData, userPosts: updatedPosts };
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    return (
+      <View key={item.id} style={styles.postContainer}>
+        <View style={styles.userInfo}>
+          <Image
+            source={{
+              uri: `http://${url}/${item.user.profile_pic}`,
+            }}
+            style={{ width: 50, height: 50, borderRadius: 50, marginRight: 10 }}
+          />
+          <View style={{ flexDirection: "column" }}>
+            <Text style={styles.userName}>You</Text>
+            <Text style={styles.timePosted}>{item.timeAgo}</Text>
+          </View>
+        </View>
+        <Text style={styles.caption}>{item.caption}</Text>
+        {item.imageUrl && (
+          <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
+        )}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            onPress={() => handleLike(item.id, item.likedByUser)}
+            style={styles.actionButton}
+          >
+            <FontAwesome
+              name={item.likedByUser ? "heart" : "heart-o"}
+              size={24}
+              color={item.likedByUser ? "#5FB49C" : "black"}
+            />
+            <Text style={styles.actionText}>{item.likeCount}</Text>
+          </TouchableOpacity>
         </View>
       </View>
-      <Text style={styles.caption}>{item.caption}</Text>
-      {item.postImage && (
-        <Image source={item.postImage} style={styles.postImage} />
-      )}
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionButton}>
-          <FontAwesome
-            name={item.liked ? "heart" : "heart-o"}
-            size={24}
-            color={item.liked ? "#5FB49C" : "black"}
-          />
-          <Text style={styles.actionText}>{item.likes}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -116,12 +147,21 @@ export default function ProfilePage({ navigation }) {
         </View>
 
         <View style={styles.profileInfo}>
-          <Image source={userData.profilePic} style={styles.profilePic} />
+          <Image
+            source={{
+              uri: `http://${url}/${userData.userPosts[0]?.user.profile_pic}`,
+            }}
+            style={styles.profilePic}
+          />
           <View style={styles.usernameContainer}>
-            <Text style={styles.username}>{userData.username}</Text>
+            <Text style={styles.username}>
+              @{userData.userPosts[0]?.user.username}
+            </Text>
             <View style={styles.metrics}>
               <View style={styles.metricContainer}>
-                <Text style={styles.metricCount}>{userData.postCount}</Text>
+                <Text style={styles.metricCount}>
+                  {userData.userPosts.length}
+                </Text>
                 <Text style={styles.metricLabel}>Posts</Text>
               </View>
               <View style={styles.metricContainer}>
@@ -132,13 +172,17 @@ export default function ProfilePage({ navigation }) {
           </View>
         </View>
 
-        <FlatList
-          contentContainerStyle={{ paddingBottom: 70 }}
-          data={userData.posts}
-          showsVerticalScrollIndicator={false}
-          renderItem={renderPost}
-          keyExtractor={(item) => item.id.toString()}
-        />
+        {loading ? ( // Display loading indicator if loading
+          <ActivityIndicator size="large" color="#5FB49C" />
+        ) : (
+          <FlatList
+            contentContainerStyle={{ paddingBottom: 70 }}
+            data={userData.userPosts}
+            showsVerticalScrollIndicator={false}
+            renderItem={renderPost}
+            keyExtractor={(item) => item.id.toString()}
+          />
+        )}
 
         {/* Modal for settings */}
         <Modal
@@ -152,15 +196,16 @@ export default function ProfilePage({ navigation }) {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Settings</Text>
               <View style={styles.switchContainer}>
-                <Text style={styles.switchLabel}>Turn Off Notifications</Text>
+                <Text style={styles.switchLabel}>Notifications Enabled</Text>
                 <Switch
-                  value={!notificationsEnabled}
-                  onValueChange={() => setNotificationsEnabled((prev) => !prev)}
+                  value={notificationsEnabled}
+                  onValueChange={(value) => toggleNotifications(value)}
                 />
               </View>
               <TouchableOpacity
                 onPress={() => {
                   toggleModal();
+                  AsyncStorage.removeItem("userId");
                   navigation.navigate("Landing");
                 }}
                 style={styles.closeButton}

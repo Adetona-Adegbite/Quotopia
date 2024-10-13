@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import {
   Image,
   SafeAreaView,
@@ -10,7 +10,9 @@ import {
   Platform,
 } from "react-native";
 import { FlatList, TouchableOpacity } from "react-native-gesture-handler";
+// @ts-ignore
 import image from "../../assets/landing-page-image.png";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const data = [
   {
@@ -45,6 +47,15 @@ export default function LandingPage({ navigation }) {
     setCurrentIndex(newIndex);
   };
 
+  useLayoutEffect(() => {
+    const checkUserId = async () => {
+      const userId = await AsyncStorage.getItem("userId");
+      if (userId) {
+        navigation.navigate("Main");
+      }
+    };
+    checkUserId();
+  }, []);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <View style={style.page}>
