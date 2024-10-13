@@ -7,5 +7,9 @@
 ./mobile/tools/supabase.js
 ./mobile/tools/url.js
 /mobile/tools/url.js
+./backend/uploads/*
+./backend/uploads/
+/backend/uploads/*
+/backend/uploads/
 */.env
 /mobile/assets/
