@@ -31,12 +31,13 @@ jobs:
         run: |
           cd backend
           zip release.zip ./* -r
+          mv release.zip ../  # Move the release.zip file to the root directory
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: backend/release.zip
+          path: release.zip  # Path is now in the root directory
 
   deploy:
     runs-on: ubuntu-latest
@@ -54,8 +55,8 @@ jobs:
           name: node-app
 
       - name: Unzip artifact for deployment
-        run: unzip backend/release.zip
-      
+        run: unzip release.zip  # Unzipping from the root directory
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -69,4 +70,4 @@ jobs:
         with:
           app-name: 'quotopia'
           slot-name: 'Production'
-          package: backend
+          package: .
