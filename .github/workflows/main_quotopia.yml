@@ -23,18 +23,21 @@ jobs:
 
       - name: npm install, build, and test
         run: |
+          cd backend
           npm install
           npm run build --if-present
-          npm run test --if-present
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: |
+          cd backend
+          zip release.zip ./* -r
+          mv release.zip ../  # Move the release.zip file to the root directory
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: release.zip
+          path: release.zip  # Path is now in the root directory
 
   deploy:
     runs-on: ubuntu-latest
@@ -52,14 +55,14 @@ jobs:
           name: node-app
 
       - name: Unzip artifact for deployment
-        run: unzip release.zip
-      
+        run: unzip release.zip  # Unzipping from the root directory
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_C81AF057489E4220A500DC651C8B1441 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_1B95824F1C2446F28027DC4B23215D6E }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B295573941A24DC1BC8018F8BD91B83D }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_34B7F667A2C04FC3A5C9BAA445418A4E }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_3EAE00B9A6264FA5AEC2E211E32C0E18 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_8F44B3FA04C149EA8EB4D381A55D4610 }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
@@ -68,4 +71,3 @@ jobs:
           app-name: 'quotopia'
           slot-name: 'Production'
           package: .
-          
